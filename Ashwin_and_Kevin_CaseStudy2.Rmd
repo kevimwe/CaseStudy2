@@ -1,0 +1,339 @@
+---
+title: "Doing Data Science Case Study 2"
+author: "Ashwin Thota and Kevin OKiah"
+date: "August 2, 2017"
+output:
+  html_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+## Question 01 (10 points)
+
+Create the X matrix and print it from SAS, R, and Python.
+
+$$\mathbf{X} =\left(\begin{array}{cc} 
+ 4 &5 &1 &2\\
+ 1 &1 &4 &5\\
+ 2 &1 &0 &2\\
+\end{array}\right)$$
+
+#### SAS code
+
+insert screen short of SAS Code and output
+
+
+#### R code
+```{r}
+
+X = matrix(c(4,5,1,2, 1,1,4,5,2,1,0,2), 
+           nrow = 3, 
+           ncol =4,
+           byrow =TRUE)
+
+print(X)
+```
+
+
+#### Python Code
+
+```{python}
+
+import numpy
+x = numpy.matrix('4,5,1,2; 1,1,4,5;2,1,0,2')
+
+print(x)
+
+```
+
+
+
+# Question 02 (15 points)
+
+Please watch  videos1 and 2 in week 11 lecture assignment. You can download the code which used for S&P from files tab.
+
+Please do the following with your assigned stock.
+
+* Download the data.
+* Calculate log returns.
+* Calculate volatility measure.
+*  Calculate volatility over entire length of series for various three different decay factors.
+*  Plot the results, overlaying the volatility curves on the data, just as was done in the S&P example.
+
+`Ashwin and Kevin`->XOM
+
+If you cannot download data from your assigned stock you can pick a different stock from the following list. `PM, PG, HON, URTY, PEN`
+
+You can use Yahoo finance or google finance to find your data!
+Submit your final code and the plot.
+
+```{r}
+
+
+```
+
+# Question 03 (20 points)
+
+
+The built-in data set called Orange in R is about the growth of orange trees. The Orange data frame has 3 columns of records of the growth of orange trees.
+
+Variable description
+Tree : an ordered factor indicating the tree on which the measurement is made. The ordering 
+            is according to increasing maximum diameter.
+
+age :  a numeric vector giving the age of the tree (days since 1968/12/31)
+circumference :  a numeric vector of trunk circumferences (mm). This is probably   
+                           “circumference at breast height”, a standard measurement in forestry.
+
+
+```{r}
+#Check the structure of the dataset
+str(Orange)
+names(Orange)
+head(Orange)
+```
+a)	Calculate the mean and the median of the trunk circumferences for different size of the trees. (Tree)
+```{r}
+pacman::p_load(pacman, dplyr) #load required packages
+
+suppressMessages(
+  Summary_<-Orange%>%
+  group_by(Tree)%>%
+  select(circumference)%>%
+  summarise(
+    Mean = mean(circumference),
+    Median = median(circumference)
+  )
+)
+Summary_
+```
+
+b)	Make a scatter plot of the trunk circumferences against the age of the tree. Use different plotting symbols for different size of trees.
+```{r}
+pacman::p_load(ggplot2)#load ggplot2 
+
+# Set shape by Tree
+ggplot(Orange, aes(x=circumference, y=age, shape=Tree , color=Tree)) + geom_point(size=3, alpha=0.6)+
+labs(title="Trunk circumferences vs age of  the tree Scatter Plot")+ theme_light()+theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+c)	Display the trunk circumferences on a comparative boxplot against tree. Be sure you order the boxplots in the increasing order of maximum diameter.
+```{r}
+
+ggplot(data = Orange,aes(y = circumference, x = Tree, fill=Tree)) + geom_boxplot() +
+labs(title="Trunk circumferences comparative  boxplot against tree")+ theme_light()+theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+# Question 04 (40 points)
+
+Download “Temp” data set.
+```{r}
+Temp<-data.frame((read.csv('TEMP.csv')))
+
+#Format the Date columns to be uniform for easy subsetting
+first<-data.frame(as.Date(Temp$Date[1:741]))
+names(first)<-c('Formated_Date')
+second<-data.frame(as.Date(Temp$Date[742:length(Temp$Date)], format = "%d/%m/%Y"))
+names(second)<-c('Formated_Date')
+
+#Add the formated date as a new column in Temp dataset
+Temp$Formated_Date =rbind(first, second)
+
+```
+
+(i)	Find the difference between the maximum and the minimum monthly average temperatures for each country and report/visualize top 20 countries with the maximum differences for the period since 1900.
+```{r}
+# subset data with start date >1900
+New_Temp<-na.omit(Temp[which(Temp$Formated_Date>='1900/1/1'),]) 
+
+#using dplyr pipees calculate the Min, Max and difference in average Temp per country
+Temp_summary<-New_Temp%>%
+  group_by(Country)%>%
+  select(Monthly.AverageTemp)%>%
+  summarise(
+    MAX = max(Monthly.AverageTemp),
+    MIN = min(Monthly.AverageTemp),
+    Diff = MAX-MIN
+  )
+
+#order by difference in decreasing order
+newdata <- Temp_summary[order(-Temp_summary$Diff),] 
+# print top 20 difference 
+head(newdata, 20)
+
+#plotting the data
+TempN<-head(newdata, 20)
+#plot bar char for the top 20 City Temps
+i<-ggplot(data=TempN, aes(y=Diff, reorder(Country, Diff))) +
+  geom_bar(stat="identity", color="blue", fill="red",width=.7)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(title="Top 20 Countries by Temp Diff", y="Temp Diff", x = "Country")+ coord_flip()+ theme_light()+theme(plot.title = element_text(hjust = 0.5))
+i
+```
+
+(ii)	Select a subset of data called “UStemp” where US land temperatures from 01/01/1990 in Temp data. Use UStemp dataset to answer the followings.
+```{r}
+# create a new dataframe call UStemp which is a subset of Temp and drop all rows with NAs
+UStemp<-na.omit(Temp[which(Temp$Formated_Date>='1900/1/1'),])
+```
+
+a)	Create a new column to display the monthly average land temperatures in Fahrenheit (°F).
+```{r}
+#Create and new column called Fahrenheit in UStemp dataset.
+UStemp$Fahrenheit<-(UStemp$Monthly.AverageTemp*(180/100))+32 #create a fahrenheit 
+
+#print first 6 rows
+head(UStemp)
+
+
+```
+
+b)	Calculate average land temperature by year and plot it. The original file has the average land temperature by month. 
+```{r}
+UStemp<-(Temp[which(Temp$Formated_Date>='1900/1/1'),])# raw data
+
+# create a new Year column based Year a derivative from the Formated_Date column
+Year<-format((UStemp$Formated_Date), format = "%Y")
+names(Year)<-c('Year') #rename the Year column
+
+#Add the year column to the UStemp dataframe
+UStemp<-cbind(UStemp,Year) 
+
+UStemp<-na.omit(UStemp) #Omit Nas
+
+#Using dplyr pipes calculated Yearly Land Temp based on the Year column created
+Yearly_Land_Avg<-UStemp%>%
+  group_by(Year)%>%
+  select(Monthly.AverageTemp)%>%
+  summarise(
+    avg = mean(as.numeric(Monthly.AverageTemp)))
+Yearly_Land_Avg
+
+# Plot timeplot of the Yearly_land Temp averages
+ggplot(Yearly_Land_Avg, aes(x=as.numeric(Year), y=as.numeric(avg))) +geom_line()+geom_point() +labs(title="Yearly Land Average Temperature Plot", y = 'Yearly Average Temp', x = 'Year')+ theme_light()+theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+c)	Calculate the one year difference of average land temperature by year and provide the maximum difference (value) with corresponding years.
+(for example, year 2000: add all 12 monthly averages and divide by 12 to get average temperature in 2000. You can do the same thing for all the available years. Then you can calculate the one year difference as 1991-1990, 1992-1991, etc) 
+```{r}
+new<-transform(Yearly_Land_Avg, One_Year_Difference = ave(avg, FUN = function(x) c(NA, diff(x))))
+
+#print first 6 rows to confirm calculations
+head(new)
+
+#order by difference in decreasing order
+newdata <- new[order(-new$One_Year_Difference),] 
+# print top 20 difference 
+
+print('The max difference')
+head(newdata, 1)
+Y = head(newdata, 1)
+
+print(paste(' The one Year Max difference is' , round(Y$One_Year_Difference, 4),'and the corresponding Years are', Y$Year, '-', (as.numeric(Y$Year)-1)))
+ 
+```
+
+(iii)	Download “CityTemp” data set (check your SMU email). Find the difference between the maximum and the minimum temperatures for each major city and report/visualize top 20 cities with maximum differences for the period since 1900. 
+```{r}
+# Format the date column
+CityTemp<-read.csv('CityTemp.csv')
+first1<-data.frame(as.Date(CityTemp$Date[1:600]))
+names(first1)<-c('Formated_Date')
+second1<-data.frame(as.Date(CityTemp$Date[601:length(CityTemp$Date)], format = "%d/%m/%Y"))
+names(second1)<-c('Formated_Date')
+
+# add the formated data column to the CityTemp dataframe
+CityTemp$Formated_Date =(rbind(first1, second1))
+
+# subset data with start date >1900
+New_CityTemp<-na.omit(CityTemp[which(CityTemp$Formated_Date>='1900/1/1'),]) 
+
+#Group the data by Country and City
+City_Temp<-New_CityTemp%>%
+  group_by(Country,City)
+
+# caluculate the difference between min and max by city average temp
+CityTemp_summary = select(City_Temp,Monthly.AverageTemp)%>%
+  summarise(MAX = max(Monthly.AverageTemp),
+            MIN = min(Monthly.AverageTemp),
+            Diff = MAX-MIN)
+
+#order by difference in decreasing order
+City_Temp_Summary_sort <- CityTemp_summary[order(-CityTemp_summary$Diff),] 
+# print top 20 diff
+
+#print the top 20 Differences from the sorted City Temp data
+head(City_Temp_Summary_sort, 20)
+
+#plotting the data
+CDAT<-head(City_Temp_Summary_sort, 20)
+#plot bar char for the top 20 City Temps
+iii<-ggplot(data=CDAT, aes(y=Diff, reorder(City, Diff))) +
+  geom_bar(stat="identity", color="blue", fill="green",width=.7)+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(title="Top 20 citys by Temp Diff", y="Temp Diff", x = "City")+ coord_flip()+ theme_light()+theme(plot.title = element_text(hjust = 0.5))
+
+iii
+
+```
+
+
+(iv)	Compare the two graphs in (i) and (iii)  and comment it.
+```{r}
+#plot side byside graphs frm i and iii
+require(gridExtra)
+grid.arrange(i, iii, ncol=2)
+
+```
+
+
+
+# Question 05  (15 points)
+
+Write a function in `R or Python` that converts temperature to either Fahrenheit or Celsius. Your function definition should be as follows – 
+
+Inputs: 
+	
+	Temp_val = Int or list of temperature values to be converted.
+            
+            Convert_to = Str.  "F" to convert to Fahrenheit or "C" to convert to Celsius. Raise error   
+                                   if the strings do not match specified input.
+
+Output:
+	
+	Int or list of converted temperature values with temperature unit.
+
+
+```{r}
+TempConverter<-function(Temp_val , convert_to){
+  #make sure all inputs passed are numeric
+   tryCatch({as.numeric(Temp_val)
+     },
+   error = function(e) {
+     print("EXCEPTION!! Can only convert numeric inputs")})
+   #only F or C conversions are supported
+   if(convert_to=='F' || convert_to=='C'){
+      #from Celsius to Fahrenheit: first multiply by 180/100, then add 32
+      if(toupper(convert_to)=='F'){
+        print(paste("Converting",paste0(Temp_val," degree Celsius")," to Fahrenheit"))
+        return(paste0((Temp_val*(180/100))+32," degree Fahrenheit"))
+        }
+      #from Fahrenheit to Celsius: first subtract 32, then multiply by 100/180
+      if(toupper(convert_to)=='C'){
+        print(paste("Converting",paste0(Temp_val," degree Fahrenheit")," to Celsius"))
+        return(paste0((Temp_val-32)*(100/180)," degree Celsius"))
+        }
+   }
+   else{
+     print("EXCEPTION!! Only an 'F'to convert to Fahrenheit or 'C' to convert to Celsius are supported")
+   }
+}
+
+#Testing the Function
+TempConverter((68.5), 'F')
+TempConverter(c(10, 0, 23), 'C')
+TempConverter(c(10, 0, 23), 'F')
+TempConverter(32, 'C')
+TempConverter(0, 'X')
+```
